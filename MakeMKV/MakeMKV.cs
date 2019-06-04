@@ -31,7 +31,7 @@ namespace MakeMKV
 
         public static DateTime FromUnixTime(int UnixTime)
         {
-            return DateTime.Parse(UNIX_EPOCH).AddSeconds(UnixTime);
+            return DateTime.Parse(UNIX_EPOCH).ToUniversalTime().AddSeconds(UnixTime);
         }
     }
 }
