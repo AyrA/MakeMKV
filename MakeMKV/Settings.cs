@@ -21,12 +21,12 @@ namespace MakeMKV
         public static DateTime InstalledKeyExpiration()
         {
             var Raw = Registry.GetValue(KEYNAME, "updater_KeyExpires", -1);
-            var L = Raw == null ? -1 : (int)Raw;
-            if (L == -1)
+            var UnixTime = Raw == null ? -1 : (int)Raw;
+            if (UnixTime == -1)
             {
                 return DateTime.MinValue;
             }
-            return new DateTime(L, DateTimeKind.Utc);
+            return MakeMKV.FromUnixTime(UnixTime);
         }
 
         /// <summary>
@@ -36,12 +36,12 @@ namespace MakeMKV
         public static DateTime LastKeyInstall()
         {
             var Raw = Registry.GetValue(KEYNAME, "updater_KeyCheck", -1);
-            var L = Raw == null ? -1 : (int)Raw;
-            if (L == -1)
+            var UnixTime = Raw == null ? -1 : (int)Raw;
+            if (UnixTime == -1)
             {
                 return DateTime.MinValue;
             }
-            return new DateTime(L, DateTimeKind.Utc);
+            return MakeMKV.FromUnixTime(UnixTime);
         }
 
         /// <summary>
