@@ -9,25 +9,33 @@ This requires an annoying extra step to obtain the new MakeMKV beta Key.
 
 ## How it Works
 
-This tool contacts the API of https://cable.ayra.ch/makemkv/ to get the latest key. It uses the "raw" API method.
+This tool contacts the API of https://cable.ayra.ch/makemkv/ to get the latest key. It uses the "xml" API method.
+It will store some metadata in the registry to not exessively contact the API.
+Under normal circumstances the tool will only check for a key once the old one has expired.
+This means you don't need an internet connection to launch the updater until the key expires.
+
+## Download
+
+Check the "[Releases](https://github.com/AyrA/MakeMKV/releases)" section for the latest builds.
+You can also clone the repository and build "as-is".
+No dependencies outside of .NET 4.5 at all.
 
 ## Installing
 
 The application will check various locations for the installed version of MakeMKV, this includes the default installation directory.
+The chapters below are in the order the updater will check for the MakeMKV installation.
 
-### For the Installed Version (regular)
+Regardless of how you installed MakeMKV, the updater always needs to be launched manually.
+If you just launch MakeMKV itself, the key will not update.
+The updater will in turn launch MakeMKV after the update check.
+
+### Installed Version with Default Path
 
 If you installed MakeMKV using the provided installer and didn't change the installation path,
-you can launch the key updater from any location directly.
+you can launch the key updater from any location on your computer directly.
 
-### For the Installed Version (custom)
+### Portable Version or Installed Version with Custom Path
 
-If you installed into a custom directory, place the updater into the same directory and create a shortcut to the updater on the Desktop.
-Of course, creating the shortcut is optional.
-**The updater needs to be launched manually, if you just launch MakeMKV itself, the key will not update**
-
-### Portable Version
-
-If you run MakeMKV as portable version, follow the cursom procedure above.
-**The updater needs to be launched manually, if you just launch MakeMKV itself, the key will not update**
+If you installed into a custom directory or use MakeMKV in a portable fashion,
+place the updater into the same directory that contains `MakeMKV.exe` and (optional) create a shortcut to the updater on the Desktop.
 
