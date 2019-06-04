@@ -142,10 +142,10 @@ nor the directory of this updater. Please do either one of them", EXE);
         /// <returns>MakeMKV Key (null on problems)</returns>
         private static string GetKey()
         {
-            HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?raw");
+            HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?xml");
             WebResponse WRes;
             //If you modify the tool, please add some personal twist to the user agent string
-            WReq.UserAgent = string.Format("MakeMKV-Tool/{0} ({1}/{2};{3})",
+            WReq.UserAgent = string.Format("AyrA/MakeMKV-Updater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
                 GetVersion(),
                 Environment.OSVersion.Platform,
                 Environment.OSVersion.Version,
