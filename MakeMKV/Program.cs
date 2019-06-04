@@ -1,5 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -10,10 +9,6 @@ namespace MakeMKV
 {
     class Program
     {
-        /// <summary>
-        /// Registry Key of MakeMKV
-        /// </summary>
-        public const string KEYNAME = @"HKEY_CURRENT_USER\Software\MakeMKV";
         /// <summary>
         /// Update Interval for Key
         /// </summary>
@@ -48,15 +43,15 @@ namespace MakeMKV
             //If executable was still not found. Give up.
             if (File.Exists(CurrentDir))
             {
-                var ForceUpdate = args.Any(m => m.ToLower() == "/force") || VersionChanged();
-                var KeyDate = ForceUpdate ? DateTime.MinValue : InstalledKeyExpiration();
+                var ForceUpdate = args.Any(m => m.ToLower() == "/force") || Settings.VersionChanged();
+                var KeyDate = ForceUpdate ? DateTime.MinValue : Settings.InstalledKeyExpiration();
                 //Only try to update the key if it actually expired
                 if (KeyDate < DateTime.UtcNow)
                 {
                     var K = GetKey();
                     if (!string.IsNullOrEmpty(K.key))
                     {
-                        InstallKey(K);
+                        Settings.InstallKey(K);
                         Console.Error.WriteLine("Key updated: {0}", K.key);
                     }
                     else
@@ -91,74 +86,6 @@ nor the directory of this updater. Please do either one of them", EXE);
         }
 
         /// <summary>
-        /// Gets the Date and Time when the currently used key will expire
-        /// </summary>
-        /// <returns>DateTime for KeyUpdate.</returns>
-        private static DateTime InstalledKeyExpiration()
-        {
-            var Raw = Registry.GetValue(KEYNAME, "updater_KeyExpires", -1);
-            var L = Raw == null ? -1 : (int)Raw;
-            if (L == -1)
-            {
-                return DateTime.MinValue;
-            }
-            return new DateTime(L, DateTimeKind.Utc);
-        }
-
-        /// <summary>
-        /// Gets the Date and Time of the last Key Update
-        /// </summary>
-        /// <returns>DateTime for KeyUpdate.</returns>
-        private static DateTime LastKeyInstall()
-        {
-            var Raw = Registry.GetValue(KEYNAME, "updater_KeyCheck", -1);
-            var L = Raw == null ? -1 : (int)Raw;
-            if (L == -1)
-            {
-                return DateTime.MinValue;
-            }
-            return new DateTime(L, DateTimeKind.Utc);
-        }
-
-        /// <summary>
-        /// Installs the current Key in the Registry
-        /// </summary>
-        /// <param name="K">Key details</param>
-        private static void InstallKey(MakeMKV K)
-        {
-            Registry.SetValue(KEYNAME, "app_Key", K.key);
-            Registry.SetValue(KEYNAME, "updater_Version", GetVersion());
-            Registry.SetValue(KEYNAME, "updater_KeyCheck", K.date, RegistryValueKind.DWord);
-            Registry.SetValue(KEYNAME, "updater_KeyExpires", K.keydate, RegistryValueKind.DWord);
-        }
-
-        private static bool VersionChanged()
-        {
-            var Raw = Registry.GetValue(KEYNAME, "updater_Version", string.Empty);
-            var Version = Raw == null ? string.Empty : (string)Raw;
-            return Version != GetVersion();
-        }
-
-        /// <summary>
-        /// Gets the current Application Version
-        /// </summary>
-        /// <returns>Application Version</returns>
-        private static string GetVersion()
-        {
-            using (var P = Process.GetCurrentProcess())
-            {
-                try
-                {
-                    return P.MainModule.FileVersionInfo.FileVersion;
-                }
-                catch
-                {
-                    return "Unknown";
-                }
-            }
-        }
-
-        /// <summary>
         /// Gets the current MakeMKV Key from the API
         /// </summary>
         /// <returns>MakeMKV Key (null on problems)</returns>
@@ -167,8 +94,8 @@ nor the directory of this updater. Please do either one of them", EXE);
             HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?xml");
             WebResponse WRes;
             //If you modify the tool, please add some personal twist to the user agent string
-            WReq.UserAgent = string.Format("AyrA/MakeMKV-Updater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
-                GetVersion(),
+            WReq.UserAgent = string.Format("AyrA/MakeMKVUpdater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
+                Settings.GetVersion(),
                 Environment.OSVersion.Platform,
                 Environment.OSVersion.Version,
                 Environment.OSVersion.VersionString);
