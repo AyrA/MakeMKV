@@ -48,9 +48,10 @@ namespace MakeMKV
             //If executable was still not found. Give up.
             if (File.Exists(CurrentDir))
             {
-                var KeyDate = InstalledKeyExpiration();
+                var ForceUpdate = args.Any(m => m.ToLower() == "/force") || VersionChanged();
+                var KeyDate = ForceUpdate ? DateTime.MinValue : InstalledKeyExpiration();
                 //Only try to update the key if it actually expired
-                if (KeyDate < DateTime.UtcNow || args.Any(m => m.ToLower() == "/force"))
+                if (KeyDate < DateTime.UtcNow)
                 {
                     var K = GetKey();
                     if (!string.IsNullOrEmpty(K.key))
@@ -126,8 +127,16 @@ nor the directory of this updater. Please do either one of them", EXE);
         private static void InstallKey(MakeMKV K)
         {
             Registry.SetValue(KEYNAME, "app_Key", K.key);
+            Registry.SetValue(KEYNAME, "updater_Version", GetVersion());
             Registry.SetValue(KEYNAME, "updater_KeyCheck", K.date, RegistryValueKind.DWord);
             Registry.SetValue(KEYNAME, "updater_KeyExpires", K.keydate, RegistryValueKind.DWord);
+        }
+
+        private static bool VersionChanged()
+        {
+            var Raw = Registry.GetValue(KEYNAME, "updater_Version", string.Empty);
+            var Version = Raw == null ? string.Empty : (string)Raw;
+            return Version != GetVersion();
         }
 
         /// <summary>
