@@ -60,6 +60,10 @@ namespace MakeMKV
                         WaitForKey();
                     }
                 }
+                else
+                {
+                    Console.Error.WriteLine("Using existing key. Expires: {0}", KeyDate.ToLocalTime());
+                }
                 ExecDir(CurrentDir);
             }
             else
