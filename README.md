@@ -39,3 +39,6 @@ you can launch the key updater from any location on your computer directly.
 If you installed into a custom directory or use MakeMKV in a portable fashion,
 place the updater into the same directory that contains `MakeMKV.exe` and (optional) create a shortcut to the updater on the Desktop.
 
+## Command Line Argument
+
+You can force a key update with the `/force` switch
