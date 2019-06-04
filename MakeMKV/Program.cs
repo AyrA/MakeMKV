@@ -2,7 +2,9 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Xml.Serialization;
 
 namespace MakeMKV
 {
@@ -46,26 +48,21 @@ namespace MakeMKV
             //If executable was still not found. Give up.
             if (File.Exists(CurrentDir))
             {
-                var KeyDate = LastKeyInstall();
-
-                //Do this at most once per day
-                if (KeyDate < DateTime.UtcNow.Subtract(new TimeSpan(UPDATE_INTERVAL_H, 0, 0)))
+                var KeyDate = InstalledKeyExpiration();
+                //Only try to update the key if it actually expired
+                if (KeyDate < DateTime.UtcNow || args.Any(m => m.ToLower() == "/force"))
                 {
                     var K = GetKey();
-                    if (!string.IsNullOrEmpty(K))
+                    if (!string.IsNullOrEmpty(K.key))
                     {
                         InstallKey(K);
-                        Console.Error.WriteLine("Key updated: {0}", K);
+                        Console.Error.WriteLine("Key updated: {0}", K.key);
                     }
                     else
                     {
                         Console.Error.WriteLine("Error obtaining Key from Internet");
                         WaitForKey();
                     }
-                }
-                else
-                {
-                    Console.Error.WriteLine("Using existing key from {0} UTC", KeyDate.ToString("yyyy-MM-dd HH:mm:ss"));
                 }
                 ExecDir(CurrentDir);
             }
@@ -93,13 +90,28 @@ nor the directory of this updater. Please do either one of them", EXE);
         }
 
         /// <summary>
+        /// Gets the Date and Time when the currently used key will expire
+        /// </summary>
+        /// <returns>DateTime for KeyUpdate.</returns>
+        private static DateTime InstalledKeyExpiration()
+        {
+            var Raw = Registry.GetValue(KEYNAME, "updater_KeyExpires", -1);
+            var L = Raw == null ? -1 : (int)Raw;
+            if (L == -1)
+            {
+                return DateTime.MinValue;
+            }
+            return new DateTime(L, DateTimeKind.Utc);
+        }
+
+        /// <summary>
         /// Gets the Date and Time of the last Key Update
         /// </summary>
         /// <returns>DateTime for KeyUpdate.</returns>
         private static DateTime LastKeyInstall()
         {
-            var Raw = Registry.GetValue(KEYNAME, "app_KeyCheck", -1L);
-            var L = Raw == null ? -1L : (long)Raw;
+            var Raw = Registry.GetValue(KEYNAME, "updater_KeyCheck", -1);
+            var L = Raw == null ? -1 : (int)Raw;
             if (L == -1)
             {
                 return DateTime.MinValue;
@@ -110,11 +122,12 @@ nor the directory of this updater. Please do either one of them", EXE);
         /// <summary>
         /// Installs the current Key in the Registry
         /// </summary>
-        /// <param name="K">Key</param>
-        private static void InstallKey(string K)
+        /// <param name="K">Key details</param>
+        private static void InstallKey(MakeMKV K)
         {
-            Registry.SetValue(KEYNAME, "app_Key", K);
-            Registry.SetValue(KEYNAME, "app_KeyCheck", DateTime.UtcNow.Ticks, RegistryValueKind.QWord);
+            Registry.SetValue(KEYNAME, "app_Key", K.key);
+            Registry.SetValue(KEYNAME, "updater_KeyCheck", K.date, RegistryValueKind.DWord);
+            Registry.SetValue(KEYNAME, "updater_KeyExpires", K.keydate, RegistryValueKind.DWord);
         }
 
         /// <summary>
@@ -140,7 +153,7 @@ nor the directory of this updater. Please do either one of them", EXE);
         /// Gets the current MakeMKV Key from the API
         /// </summary>
         /// <returns>MakeMKV Key (null on problems)</returns>
-        private static string GetKey()
+        private static MakeMKV GetKey()
         {
             HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?xml");
             WebResponse WRes;
@@ -156,7 +169,7 @@ nor the directory of this updater. Please do either one of them", EXE);
             }
             catch
             {
-                return null;
+                return default(MakeMKV);
             }
             using (WRes)
             {
@@ -164,11 +177,18 @@ nor the directory of this updater. Please do either one of them", EXE);
                 {
                     using (var SR = new StreamReader(S))
                     {
-                        return SR.ReadToEnd().Trim();
+                        var Ser = new XmlSerializer(typeof(MakeMKV));
+                        try
+                        {
+                            return (MakeMKV)Ser.Deserialize(SR);
+                        }
+                        catch
+                        {
+                            return default(MakeMKV);
+                        }
                     }
                 }
             }
-
         }
 
         /// <summary>
