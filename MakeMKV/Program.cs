@@ -95,6 +95,7 @@ nor the directory of this updater. Please do either one of them", EXE);
         /// <returns>MakeMKV Key (null on problems)</returns>
         private static MakeMKV GetKey()
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?xml");
             WebResponse WRes;
             //If you modify the tool, please add some personal twist to the user agent string
@@ -107,8 +108,9 @@ nor the directory of this updater. Please do either one of them", EXE);
             {
                 WRes = WReq.GetResponse();
             }
-            catch
+            catch(Exception ex)
             {
+                System.Diagnostics.Debug.Print(ex.Message);
                 return default(MakeMKV);
             }
             using (WRes)
