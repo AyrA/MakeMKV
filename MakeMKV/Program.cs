@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace MakeMKV
@@ -18,7 +20,9 @@ namespace MakeMKV
         /// </summary>
         public const string EXE = "MakeMKV.exe";
 
-        static void Main(string[] args)
+        private static readonly HttpClient HttpClient = new HttpClient();
+
+        static async Task Main(string[] args)
         {
 #if DEBUG
             //Hardcode for debugging purposes
@@ -43,12 +47,12 @@ namespace MakeMKV
             //If executable was still not found. Give up.
             if (File.Exists(CurrentDir))
             {
-                var ForceUpdate = args.Any(m => m.ToLower() == "/force") || Settings.VersionChanged();
+                var ForceUpdate = args.Any(m => string.Equals(m, "/force", StringComparison.OrdinalIgnoreCase)) || Settings.VersionChanged();
                 var KeyDate = ForceUpdate ? DateTime.MinValue : Settings.InstalledKeyExpiration();
                 //Only try to update the key if it actually expired
                 if (KeyDate < DateTime.UtcNow)
                 {
-                    var K = GetKey();
+                    var K = await GetKeyAsync();
                     if (!string.IsNullOrEmpty(K.key))
                     {
                         Settings.InstallKey(K);
@@ -93,43 +97,59 @@ nor the directory of this updater. Please do either one of them", EXE);
         /// Gets the current MakeMKV Key from the API
         /// </summary>
         /// <returns>MakeMKV Key (null on problems)</returns>
-        private static MakeMKV GetKey()
+        private static async Task<MakeMKV> GetKeyAsync()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            HttpWebRequest WReq = WebRequest.CreateHttp("https://cable.ayra.ch/makemkv/api.php?xml");
-            WebResponse WRes;
-            //If you modify the tool, please add some personal twist to the user agent string
-            WReq.UserAgent = string.Format("AyrA/MakeMKVUpdater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
-                Settings.GetVersion(),
-                Environment.OSVersion.Platform,
-                Environment.OSVersion.Version,
-                Environment.OSVersion.VersionString);
             try
             {
-                WRes = WReq.GetResponse();
-            }
-            catch(Exception ex)
-            {
-                System.Diagnostics.Debug.Print(ex.Message);
-                return default(MakeMKV);
-            }
-            using (WRes)
-            {
-                using (var S = WRes.GetResponseStream())
+                using (var Request = new HttpRequestMessage(HttpMethod.Get, "https://cable.ayra.ch/makemkv/api.php?xml"))
                 {
-                    using (var SR = new StreamReader(S))
+                    //If you modify the tool, please add some personal twist to the user agent string
+                    Request.Headers.UserAgent.ParseAdd(string.Format("AyrA/MakeMKVUpdater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
+                        Settings.GetVersion(),
+                        Environment.OSVersion.Platform,
+                        Environment.OSVersion.Version,
+                        Environment.OSVersion.VersionString));
+
+                    using (var Response = await HttpClient.SendAsync(Request))
                     {
-                        var Ser = new XmlSerializer(typeof(MakeMKV));
-                        try
+                        Response.EnsureSuccessStatusCode();
+                        using (var Stream = await Response.Content.ReadAsStreamAsync())
+                        using (var Reader = XmlReader.Create(Stream, new XmlReaderSettings
                         {
-                            return (MakeMKV)Ser.Deserialize(SR);
-                        }
-                        catch
+                            DtdProcessing = DtdProcessing.Prohibit,
+                            XmlResolver = null
+                        }))
                         {
-                            return default(MakeMKV);
+                            var Serializer = new XmlSerializer(typeof(MakeMKV));
+                            return (MakeMKV)Serializer.Deserialize(Reader);
                         }
                     }
                 }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.Error.WriteLine("Error requesting key: {0}", ex.Message);
+                return default(MakeMKV);
+            }
+            catch (TaskCanceledException ex)
+            {
+                Console.Error.WriteLine("Key request timed out: {0}", ex.Message);
+                return default(MakeMKV);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.Error.WriteLine("Error parsing key response: {0}", ex.Message);
+                return default(MakeMKV);
+            }
+            catch (XmlException ex)
+            {
+                Console.Error.WriteLine("Error parsing key response: {0}", ex.Message);
+                return default(MakeMKV);
+            }
+            catch (IOException ex)
+            {
+                Console.Error.WriteLine("Error reading key response: {0}", ex.Message);
+                return default(MakeMKV);
             }
         }
 

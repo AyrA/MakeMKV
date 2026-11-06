@@ -17,8 +17,8 @@ This means you don't need an internet connection to launch the updater until the
 ## Download
 
 Check the "[Releases](https://github.com/AyrA/MakeMKV/releases)" section for the latest builds.
-You can also clone the repository and build "as-is".
-No dependencies outside of .NET 4.5 at all.
+You can also clone the repository and build it with the .NET 10 SDK.
+The updater runs on Windows and requires the .NET 10 runtime.
 
 ## Installing
 
