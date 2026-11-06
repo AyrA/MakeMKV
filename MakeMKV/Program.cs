@@ -104,7 +104,7 @@ nor the directory of this updater. Please do either one of them", EXE);
                 using (var Request = new HttpRequestMessage(HttpMethod.Get, "https://cable.ayra.ch/makemkv/api.php?xml"))
                 {
                     //If you modify the tool, please add some personal twist to the user agent string
-                    Request.Headers.UserAgent.ParseAdd(string.Format("AyrA/MakeMKVUpdater-{0} ({1}/{2};{3}) +https://github.com/AyrA/MakeMKV",
+                    Request.Headers.UserAgent.ParseAdd(string.Format("AyrA/MakeMKVUpdater-{0} ({1}/{2};{3}; +https://github.com/AyrA/MakeMKV)",
                         Settings.GetVersion(),
                         Environment.OSVersion.Platform,
                         Environment.OSVersion.Version,
